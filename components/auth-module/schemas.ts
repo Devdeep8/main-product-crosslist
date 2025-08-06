@@ -19,3 +19,24 @@ export const LoginSchema = z.object({
 // Infer the TypeScript type from the Zod schema.
 // This is a best practice to keep your types in sync with your validation.
 export type LoginValues = z.infer<typeof LoginSchema>;
+
+
+
+export const RegisterSchema = z.object({
+  fullName: z.string().min(1, {
+    message: "Name is required.",
+  }),
+  email: z.email({
+    message: "A valid email is required.",
+  }),
+ password: z.string()
+    .min(8, {
+      message: "Password must be at least 8 characters long",
+    })
+    .max(32, {
+      message: "Password must not exceed 32 characters",
+    }),
+});
+
+
+export type RegisterValue = z.infer<typeof RegisterSchema>;

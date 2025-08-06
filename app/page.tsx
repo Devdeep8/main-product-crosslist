@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Users, FolderOpen, Clock, TrendingUp } from 'lucide-react'
@@ -19,10 +18,10 @@ export default function HomePage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/sign-in">
-                <Button variant="ghost">Sign In</Button>
+                <Button variant="ghost">Sign Up</Button>
               </Link>
               <Link href="/sign-up">
-                <Button>Get Started</Button>
+                <Button>Login</Button>
               </Link>
             </div>
           </div>
@@ -43,13 +42,13 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex justify-center space-x-4">
               <Link href="/sign-up">
-                <Button size="lg" className="px-8">
-                  Start Free Trial
+                <Button size="lg" className=" cursor-pointer px-8">
+                  Sign Up
                 </Button>
               </Link>
               <Link href="/sign-in">
-                <Button variant="outline" size="lg" className="px-8">
-                  Sign In
+                <Button variant="outline" size="lg" className=" cursor-pointer px-8">
+                Login 
                 </Button>
               </Link>
             </div>
@@ -122,7 +121,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
+      {/* <section className="py-20 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             Ready to get started?
@@ -139,7 +138,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      {/* <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h3 className="text-xl font-bold mb-4">Kaneo Clone</h3>
@@ -148,7 +147,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-      </footer>
+      </footer> */} 
     </div>
   )
 }

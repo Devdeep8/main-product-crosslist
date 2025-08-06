@@ -1,5 +1,5 @@
 {
-  "name": "prabisha-project-pro",
+  "name": "prabisha-crosslist",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,6 +13,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -57,7 +58,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.536.0",
     "next": "latest",
-    "next-auth": "^4.24.11",
+    "next-auth": "beta",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.5",
     "react": "19.1.0",

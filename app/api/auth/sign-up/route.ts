@@ -1,7 +1,7 @@
 
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { signUpSchema } from "@/lib/validations";
+import { signUpSchema } from "@/lib/tokens";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {

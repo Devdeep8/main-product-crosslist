@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (token && isPublicPath && pathname !== '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/home', request.url))
   }
 
   // Redirect unauthenticated users to sign-in page
