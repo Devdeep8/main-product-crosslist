@@ -14,6 +14,7 @@ import {
   Wind,
   LogOut,
   Settings,
+  ToolCase,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const navLinks = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/inventory", label: "Inventory", icon: Warehouse },
   { href: "/tasks", label: "Tasks", icon: ListTodo },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
+  { href: "/tools/converter", label: "Tools", icon: ToolCase },
   { href: "/shops", label: "My Shops", icon: Store },
   { href: "/account", label: "Account", icon: User },
 ];
