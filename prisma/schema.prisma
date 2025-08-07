@@ -1,25 +1,53 @@
-generator client {
-  provider = "prisma-client-js"
-}
+// This is your complete Prisma schema file.
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =============================================
+// ENUMS for application logic
+// =============================================
+enum ConnectionType {
+  BROWSER
+  API
+}
+
+enum ShopStatus {
+  CONNECTED
+  UNCONNECTED
+  ERROR
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  ENDED
+  DRAFT
+}
+
+
+// =============================================
+// AUTH MODELS (NextAuth.js)
+// =============================================
+
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -48,6 +76,11 @@ model VerificationToken {
 }
 
 
+// =============================================
+// CORE APPLICATION MODELS
+// =============================================
+
+// --- User Model (Updated with all relations) ---
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -57,12 +90,89 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
+  // Auth Relations
+  accounts Account[]
+  sessions Session[]
 
-  accounts           Account[]
-  sessions           Session[]
+  // App Relations
+  shops    Shop[]
+  products Product[]
+
   @@map("users")
+}
 
+// --- Marketplace Model ---
+// Defines the platforms you support (e.g., eBay, Poshmark).
+// This is typically managed by you as the admin.
+model Marketplace {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  logoUrl        String
+  connectionType ConnectionType
+
+  shops          Shop[]
+
+  @@map("marketplaces")
+}
+
+// --- Shop Model ---
+// Represents a user's connection to a specific marketplace.
+model Shop {
+  id            String      @id @default(cuid())
+  shopName      String
+  status        ShopStatus  @default(UNCONNECTED)
+  autoDelist    Boolean     @default(false)
+  credentials   String?     @db.Text // Stores encrypted tokens
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  marketplace   Marketplace @relation(fields: [marketplaceId], references: [id])
+  marketplaceId Int
+  listings      Listing[]
+  
+  @@unique([userId, marketplaceId])
+
+  @@map("shops")
 }
 
 
+// --- Product Model ---
+// Represents an item in the user's central inventory.
+model Product {
+  id               String   @id @default(cuid())
+  title            String
+  description      String?  @db.Text
+  sku              String?  @unique
+  price            Float
+  quantity         Int      @default(1)
+  imagesJson       Json?    // For an array of image URLs
+  inventoryGroup   String?  // For the "Inventory Group" field
+  attributesJson   Json?    // For flexible details like Brand, Color, Retail Price etc.
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  listings         Listing[]
+
+  @@map("products")
+}
+
+
+// --- Listing Model ---
+// The bridge for cross-listing: connects one Product to one Shop.
+model Listing {
+  id                String        @id @default(cuid())
+  externalListingId String        @unique // The ID from the external site (e.g., eBay)
+  url               String?       // Direct URL to the listing on the marketplace
+  status            ListingStatus @default(DRAFT)
+  overridesJson     Json?
+
+  // Relations
+  product           Product       @relation(fields: [productId], references: [id])
+  productId         String
+  shop              Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId            String
+
+  @@map("listings")
+}

@@ -57,7 +57,7 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.355 0.198 265.8); /* #2832B1 - Accent blue */
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(64.309% 0.13881 18.948);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.521 0.152 43.2); /* Ring color matches primary */
@@ -91,7 +91,7 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.455 0.198 265.8); /* Lighter blue for dark mode */
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: oklch(69.391% 0.11162 18.883);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.651 0.152 43.2); /* Ring color matches primary */
