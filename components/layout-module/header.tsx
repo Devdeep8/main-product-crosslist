@@ -1,5 +1,6 @@
 "use client";
-
+import { useState } from "react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,6 +16,8 @@ import {
   LogOut,
   Settings,
   ToolCase,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,10 +49,19 @@ const navLinks = [
 export function HomeHeader({ session }: { session: any }) {
   const pathname = usePathname();
   const user = session.user;
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
   return (
-<header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 
-  backdrop-blur-md  dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 shadow-sm">      {/* Left Section: Logo and App Name */}
+    <header
+      className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 
+  backdrop-blur-md  dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 shadow-sm"
+    >
+      {" "}
+      {/* Left Section: Logo and App Name */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon">
           <LayoutGrid className="h-5 w-5" />
@@ -61,35 +73,45 @@ export function HomeHeader({ session }: { session: any }) {
           </span>
         </Link>
       </div>
-
       {/* Center Section: Navigation Links */}
-      <nav className=" hidden md:flex items-center gap-2 "> 
-
-      {navLinks.map((link) => {
-  const isActive = pathname.startsWith(link.href);
-  return (
-    <Tooltip key={link.href}>
-      <TooltipTrigger asChild>
-        <Link href={link.href}>
-          <Button
-            variant={isActive ? "secondary" : "ghost"}
-            className="flex items-center gap-2"
-          >
-            <link.icon className="h-4 w-4" />
-            {link.label}
-          </Button>
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" sideOffset={4}>
-        {link.label}
-      </TooltipContent>
-    </Tooltip>
-  );
-})}
+      <nav className=" hidden md:flex items-center gap-2 ">
+        {navLinks.map((link) => {
+          const isActive = pathname.startsWith(link.href);
+          return (
+            <Tooltip key={link.href}>
+              <TooltipTrigger asChild>
+                <Link href={link.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className="flex items-center gap-2"
+                  >
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>
+                {link.label}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </nav>
 
-
-
+      {/* Toggle Theme Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleTheme}
+        className="rounded-full"
+      >
+        {mounted && theme === "dark" ? (
+          <Sun className="size-[18px]" />
+        ) : (
+          <Moon className="size-[18px]" />
+        )}
+        <span className="sr-only">Toggle theme</span>
+      </Button>
       {/* Right Section: Help and User Dropdown */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" className="flex items-center gap-2">
