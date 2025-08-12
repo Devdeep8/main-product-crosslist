@@ -246,7 +246,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     } else { // targetFormat is 'ecokart'
       const outputData = generateEcokartData(internalData);
       const buffer = generateExcelBuffer(outputData);
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename="ecokart-upload-ready-${Date.now()}.xlsx"`,

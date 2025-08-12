@@ -8,32 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast, Toaster } from 'sonner';
 
-/**
- * A client-side component for the file conversion interface.
- * Handles file selection, format selection, and API communication.
- * Includes robust error handling and a dynamic UI that prompts for a 
- * template file if the server cannot find it.
- */
 export default function ConverterPage() {
-  // State for the primary data file (Ecokart or eBay)
   const [file, setFile] = useState<File | null>(null);
-  
-  // State for the selected output format
-  const [targetFormat, setTargetFormat] = useState<'ecokart' | 'ebay' | ''>('');
-  
-  // State to manage the UI during the conversion process
+  // State now includes 'google'
+  const [targetFormat, setTargetFormat] = useState<'ecokart' | 'ebay' | 'google' | ''>('');
   const [isConverting, setIsConverting] = useState(false);
-  
-  // State to determine if the eBay template upload UI should be shown
   const [needsTemplate, setNeedsTemplate] = useState(false);
-  
-  // State for the user-provided eBay template file
   const [templateFile, setTemplateFile] = useState<File | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setFile(event.target.files[0]);
-      // Hide the template prompt if a new file is selected
       setNeedsTemplate(false); 
     }
   };
@@ -44,9 +29,6 @@ export default function ConverterPage() {
     }
   };
 
-  /**
-   * Handles the form submission, sending the file(s) to the backend API.
-   */
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!file || !targetFormat) {
@@ -54,8 +36,8 @@ export default function ConverterPage() {
       return;
     }
     
-    // If the UI is asking for the template, ensure it has been provided.
-    if (needsTemplate && !templateFile) {
+    // This check is specific to the eBay flow
+    if (targetFormat === 'ebay' && needsTemplate && !templateFile) {
       toast.error('Please upload the official eBay template file to continue.');
       return;
     }
@@ -67,18 +49,30 @@ export default function ConverterPage() {
     formData.append('file', file);
     formData.append('targetFormat', targetFormat);
     
-    // Append the eBay template file to the request if it has been selected
-    if (templateFile) {
+    if (templateFile && targetFormat === 'ebay') {
       formData.append('templateFile', templateFile);
     }
 
+    // --- Dynamic Endpoint Logic ---
+    // Determines which API to call based on the selected format.
+    let apiEndpoint = '';
+    if (targetFormat === 'ebay') {
+      apiEndpoint = '/api/products/convert';
+    } else if (targetFormat === 'google') {
+      apiEndpoint = '/api/products/bulk-google';
+    } else {
+        // Fallback or handle other cases if necessary
+        toast.error("Invalid target format selected for conversion.");
+        setIsConverting(false);
+        return;
+    }
+
     try {
-      const response = await fetch('/api/products/convert', {
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         body: formData,
       });
 
-      // Handle file download on success
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -93,18 +87,17 @@ export default function ConverterPage() {
         window.URL.revokeObjectURL(url);
 
         toast.success('File converted and download started!');
-        setNeedsTemplate(false); // Reset UI on success
+        setNeedsTemplate(false);
         setTemplateFile(null);
         return;
       }
       
-      // Handle errors from the API
       const result = await response.json();
       
-      // Check for the specific "template not found" error code
-      if (result.error === 'TEMPLATE_NOT_FOUND') {
+      // This error is specific to the eBay flow
+      if (result.error === 'TEMPLATE_NOT_FOUND' && targetFormat === 'ebay') {
         toast.error('Official eBay template not found. Please upload it below.');
-        setNeedsTemplate(true); // Show the template upload input
+        setNeedsTemplate(true);
       } else if (result.errors) {
         const errorMessages = result.errors.map((e: any) => `- Row ${e.row}: ${e.message}`).join('\n');
         toast.error(`Please fix these errors in your file:\n${errorMessages}`, { duration: 10000 });
@@ -125,7 +118,7 @@ export default function ConverterPage() {
       <header>
         <h1 className="text-3xl font-bold">Product Data Converter</h1>
         <p className="text-muted-foreground">
-          Upload your Ecokart or eBay file to get the converted version.
+          Upload your Ecokart file and choose a format to convert it to.
         </p>
       </header>
 
@@ -137,9 +130,8 @@ export default function ConverterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="source-file">1. Upload Source File</Label>
+              <Label htmlFor="source-file">1. Upload Source File (Ecokart)</Label>
               <Input id="source-file" type="file" accept=".csv,.xlsx" onChange={handleFileChange} required />
-              <p className="text-sm text-muted-foreground">The system will auto-detect if it's an Ecokart or eBay file.</p>
             </div>
             
             <div className="space-y-2">
@@ -149,12 +141,14 @@ export default function ConverterPage() {
                 <SelectContent>
                   <SelectItem value="ecokart">Ecokart Format</SelectItem>
                   <SelectItem value="ebay">eBay Format</SelectItem>
+                  {/* New option for Google */}
+                  <SelectItem value="google">Google Merchant Format</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Conditional UI for template upload */}
-            {needsTemplate && (
+            {/* Conditional UI for eBay template upload */}
+            {targetFormat === 'ebay' && needsTemplate && (
               <div className="p-4 border-l-4 border-yellow-400 bg-yellow-50 space-y-2 rounded-md">
                 <Label htmlFor="template-file" className="font-bold text-yellow-800">3. Upload Official eBay Template</Label>
                 <Input id="template-file" type="file" accept=".csv" onChange={handleTemplateFileChange} required />

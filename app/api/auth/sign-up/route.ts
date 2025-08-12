@@ -1,13 +1,13 @@
 
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { signUpSchema } from "@/lib/tokens";
+import { RegisterSchema } from "@/components/auth-module/schemas";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parsed = signUpSchema.safeParse(body);
+    const parsed = RegisterSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password } = parsed.data;
+    const { fullName, email, password } = parsed.data;
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({ where: { email } });
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     // Create user
     await db.user.create({
       data: {
-        name,
+        name : fullName,
         email,
         password: hashedPassword,
       },
