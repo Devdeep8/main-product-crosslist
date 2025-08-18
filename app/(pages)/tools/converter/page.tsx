@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast, Toaster } from 'sonner';
+import { Download } from 'lucide-react';
 
 export default function ConverterPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -15,6 +16,7 @@ export default function ConverterPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [needsTemplate, setNeedsTemplate] = useState(false);
   const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -26,6 +28,46 @@ export default function ConverterPage() {
   const handleTemplateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setTemplateFile(event.target.files[0]);
+    }
+  };
+
+  const handleDirectDownload = async () => {
+    setIsDownloading(true);
+
+    const downloadPromise = fetch('/api/products/templates/ecokart').then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          error: 'An unexpected server error occurred.',
+        }));
+        throw new Error(errorData.error || 'Failed to download the file.');
+      }
+
+      // If response is OK, process the file download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const header = response.headers.get('Content-Disposition');
+      const filename = header ? header.split('filename=')[1].replace(/"/g, '') : 'Ecokart-Live-Products.xlsx';
+
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    });
+
+    try {
+      await toast.promise(downloadPromise, {
+        loading: 'Generating your live product template...',
+        success: 'File download has started!',
+        error: (err) => err.message, // Display the specific error message on failure
+      });
+    } catch (error) {
+      // Catch block to prevent unhandled promise rejection warnings.
+      // The toast will have already displayed the error.
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -115,13 +157,17 @@ export default function ConverterPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <Toaster position="top-center" richColors theme="light" />
-      <header>
-        <h1 className="text-3xl font-bold">Product Data Converter</h1>
-        <p className="text-muted-foreground">
-          Upload your Ecokart file and choose a format to convert it to.
-        </p>
+      
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Product Data Converter</h1>
+          <p className="text-muted-foreground">Upload your Ecokart file and choose a format to convert it to.</p>
+        </div>
+        <Button onClick={handleDirectDownload} disabled={isDownloading} variant="outline">
+          <Download className="mr-2 h-4 w-4" />
+          {isDownloading ? 'Generating...' : 'Download Live Products'}
+        </Button>
       </header>
-
       <Card>
         <CardHeader>
           <CardTitle>Start Conversion</CardTitle>
