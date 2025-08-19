@@ -11,8 +11,8 @@ import { Download } from 'lucide-react';
 
 export default function ConverterPage() {
   const [file, setFile] = useState<File | null>(null);
-  // State now includes 'google'
-  const [targetFormat, setTargetFormat] = useState<'ecokart' | 'ebay' | 'google' | ''>('');
+  // State now includes 'facebook'
+  const [targetFormat, setTargetFormat] = useState<'ecokart' | 'ebay' | 'google' | 'facebook' | ''>('');
   const [isConverting, setIsConverting] = useState(false);
   const [needsTemplate, setNeedsTemplate] = useState(false);
   const [templateFile, setTemplateFile] = useState<File | null>(null);
@@ -21,10 +21,10 @@ export default function ConverterPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setFile(event.target.files[0]);
-      setNeedsTemplate(false); 
+      setNeedsTemplate(false);
     }
   };
-  
+
   const handleTemplateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setTemplateFile(event.target.files[0]);
@@ -77,7 +77,7 @@ export default function ConverterPage() {
       toast.error('Please select a target format and a file.');
       return;
     }
-    
+
     // This check is specific to the eBay flow
     if (targetFormat === 'ebay' && needsTemplate && !templateFile) {
       toast.error('Please upload the official eBay template file to continue.');
@@ -90,7 +90,7 @@ export default function ConverterPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('targetFormat', targetFormat);
-    
+
     if (templateFile && targetFormat === 'ebay') {
       formData.append('templateFile', templateFile);
     }
@@ -102,11 +102,13 @@ export default function ConverterPage() {
       apiEndpoint = '/api/products/convert';
     } else if (targetFormat === 'google') {
       apiEndpoint = '/api/products/bulk-google';
+    } else if (targetFormat === 'facebook') {
+      apiEndpoint = '/api/products/facebook-bulk';
     } else {
-        // Fallback or handle other cases if necessary
-        toast.error("Invalid target format selected for conversion.");
-        setIsConverting(false);
-        return;
+      // Fallback or handle other cases if necessary
+      toast.error("Invalid target format selected for conversion.");
+      setIsConverting(false);
+      return;
     }
 
     try {
@@ -133,9 +135,9 @@ export default function ConverterPage() {
         setTemplateFile(null);
         return;
       }
-      
+
       const result = await response.json();
-      
+
       // This error is specific to the eBay flow
       if (result.error === 'TEMPLATE_NOT_FOUND' && targetFormat === 'ebay') {
         toast.error('Official eBay template not found. Please upload it below.');
@@ -157,8 +159,8 @@ export default function ConverterPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <Toaster position="top-center" richColors theme="light" />
-      
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Product Data Converter</h1>
           <p className="text-muted-foreground">Upload your Ecokart file and choose a format to convert it to.</p>
@@ -179,7 +181,7 @@ export default function ConverterPage() {
               <Label htmlFor="source-file">1. Upload Source File (Ecokart)</Label>
               <Input id="source-file" type="file" accept=".csv,.xlsx" onChange={handleFileChange} required />
             </div>
-            
+
             <div className="space-y-2">
               <Label>2. Select Target Format</Label>
               <Select onValueChange={(v) => setTargetFormat(v as any)} value={targetFormat}>
@@ -187,8 +189,9 @@ export default function ConverterPage() {
                 <SelectContent>
                   <SelectItem value="ecokart">Ecokart Format</SelectItem>
                   <SelectItem value="ebay">eBay Format</SelectItem>
-                  {/* New option for Google */}
                   <SelectItem value="google">Google Merchant Format</SelectItem>
+                  {/* New option for Facebook */}
+                  <SelectItem value="facebook">Facebook Marketplace Format</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -201,7 +204,7 @@ export default function ConverterPage() {
                 <p className="text-sm text-yellow-700">Please provide the `ebay-official-format.csv` file.</p>
               </div>
             )}
-            
+
             <Button type="submit" size="lg" disabled={!file || !targetFormat || isConverting}>
               {isConverting ? 'Converting...' : 'Convert and Download File'}
             </Button>
