@@ -98,9 +98,11 @@ export default function ConverterPage() {
     // --- Dynamic Endpoint Logic ---
     // Determines which API to call based on the selected format.
     let apiEndpoint = '';
-    if (targetFormat === 'ebay') {
+    if (targetFormat === 'ecokart') {
+      apiEndpoint = '/api/products/to-ecokart';
+    }else if (targetFormat === 'ebay') {
       apiEndpoint = '/api/products/convert';
-    } else if (targetFormat === 'google') {
+    } else if (targetFormat === 'google') { 
       apiEndpoint = '/api/products/bulk-google';
     } else if (targetFormat === 'facebook') {
       apiEndpoint = '/api/products/facebook-bulk';

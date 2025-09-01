@@ -42,7 +42,7 @@ export async function GET() {
   try {
     // --- Step 1: Fetch the latest 100 products from your live API ---
     const response = await fetch(
-      "https://www.ecokartuk.com/api/products/enhanced?take=100"
+      "https://www.ecokartuk.com/api/products?take=10000"
     );
     if (!response.ok) {
       throw new Error(

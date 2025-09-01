@@ -10,15 +10,37 @@ import path from 'path';
 const EBAY_ACTION_STRING = 'Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)';
 
 const ECOKART_TO_EBAY_CATEGORY_MAP: Record<string, string> = {
-  'Shoes & Footwear': '15709',
-  'Toys & Games': '220',
-  'Fashion & Apparel': '11450',
-  "Men's Clothing": '1059',
-  'Boys Clothes': '260067',
-  'Electronics & Tech': '9355',
-  'Home & Living': '11700',
-  'Kids': '220',
+  "Men's Clothing": "1059",              // Men's Clothing
+  "Women's Clothing": "15724",           // Women's Clothing
+  "Kids Clothing": "11462",              // Kids' & Baby Clothing
+  "Girls Clothes": "11462",              // falls under Kids Clothing
+  "Boys Clothes": "260067",              // Boys' Clothing
+  "Shoes & Footwear": "15709",           // Shoes
+  "Fashion": "11450",                    // Clothing, Shoes & Accessories
+  "Men's Grooming": "11854",             // Shaving & Hair Removal
+  "Skincare": "11863",                   // Skin Care
+  "Jewelry": "281",                      // Jewelry & Watches
+  "Watches": "14324",                    // Watches
+  "Bags & Luggage": "169291",            // Travel Luggage
+  "Toys": "220",                         // Toys & Hobbies
+  "Kids": "220",                         // Map Kids general → Toys
+  "Videos": "617",                       // DVDs & Movies
+  "Books": "267",                        // Books
+  "Video Games": "1249",                 // Video Games & Consoles
+  "Electronics": "9355",                 // Consumer Electronics
+  "Tools & Hardware": "631",             // Tools & Workshop Equipment
+  "Sports & Fitness": "888",             // Sporting Goods
+  "Home & Living": "11700",              // Home & Garden
+  "Home Decor": "10033",                 // Home Décor
+  "Kitchen & Dining": "20625",           // Kitchen, Dining & Bar
+  "School Supplies": "160737",           // School Supplies
+  "Health & Beauty": "26395",            // Health & Beauty
+  "Accessories": "4251",                 // Fashion Accessories
+  "Vintage & Collectible": "37903",      // Collectibles
+  "Luxury": "15724",                     // Luxury fashion (under Women’s Clothing/Fashion)
+  "Gifts": "184609"                      // Gift Cards & Coupons
 };
+
 
 // ==================================================================================
 // --- Type Definitions, Error Class, and Helper Functions ---
@@ -99,7 +121,7 @@ function mapEcokartToInternal(row: ParsedRow, rowIndex: number): InternalProduct
   if (!sku) throw new ValidationError(rowIndex, 'SKU', '"SKU" cannot be empty.');
   if (isNaN(price)) throw new ValidationError(rowIndex, 'Price', '"Price" must be a valid number.');
 
-  const categoryName = findValueByKey(row, 'CategoryName') || '';
+  const categoryName = findValueByKey(row, 'Category Name') || '';
   return {
     sku, name, price,
     description: findValueByKey(row, 'Description') || '',
@@ -193,7 +215,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const isEbaySource = Object.keys(rows[0]).some(key => key.startsWith('action(siteid'));
-    const requiredHeaders = isEbaySource ? ['category id', 'title', 'custom label (sku)'] : ['name', 'sku', 'price', 'condition', 'categoryname'];
+    const requiredHeaders = isEbaySource ? ['category id', 'title', 'custom label (sku)' , "Item photo URL"] : ['name', 'sku', 'price', 'condition', 'category name', 'Image URL 1'];
     const validationResult = validateHeaders(rows[0], requiredHeaders);
 
     if (!validationResult.isValid) {

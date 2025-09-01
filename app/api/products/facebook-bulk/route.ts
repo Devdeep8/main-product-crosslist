@@ -142,7 +142,7 @@ function generateFacebookData(internalData: InternalProduct[]): Record<string, a
         'age_group': p.ageGroup,
         'material': p.material,
         'pattern': p.pattern,
-        'shipping': '', // No direct mapping from Ecokart
+        'shipping': "", // No direct mapping from Ecokart
         'shipping_weight': '', // No direct mapping from Ecokart
         'gtin': p.upc,
         'video[0].url': '',
