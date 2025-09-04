@@ -7,39 +7,58 @@ import fs from 'fs/promises';
 // ==================================================================================
 // --- Type Definitions, Error Class, and Helper Functions ---
 // ==================================================================================
+
 type InternalProduct = {
-    sku: string; name: string; description: string; price: number; quantity: number;
-    imageUrls: string[]; upc: string; ecokartCategory: string;
-    brand: string; condition: string;
+    sku: string;
+    name: string;
+    description: string;
+    price: number;
+    quantity: number;
+    imageUrls: string[];
+    upc: string;
+    ecokartCategory: string;
+    additionalCategoryNames: string; // Added for eBay's second category
+    brand: string;
+    condition: string;
 };
 
 type ParsedRow = Record<string, any>;
 
 class ValidationError extends Error {
-    constructor(public row: number, public field: string, message:string) {
+    constructor(public row: number, public field: string, message: string) {
         super(message);
         this.name = 'ValidationError';
     }
 }
 
-// Uses the 'xlsx' library to safely parse both .csv and .xlsx user uploads
+/**
+ * Uses the 'xlsx' library to safely parse both .csv and .xlsx user uploads.
+ * It normalizes all column headers to lowercase for consistent access.
+ * @param file The uploaded file from the user.
+ * @returns A promise that resolves to an array of parsed row objects.
+ */
 async function parseUploadedFile(file: File): Promise<ParsedRow[]> {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
-    // Explicitly type rows as a string-keyed object to allow safe indexing
     const sheet = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: "" });
+
+    // Normalize keys to lowercase for consistent mapping
     return sheet.map((row) => {
         const normalizedRow: ParsedRow = {};
         for (const [key, value] of Object.entries(row)) {
-            const normalizedKey = key.trim().toLowerCase();
-            // ParsedRow allows any values; cast here to satisfy TS
-            normalizedRow[normalizedKey] = value as any;
+            normalizedRow[key.trim().toLowerCase()] = value;
         }
         return normalizedRow;
     });
 }
 
+/**
+ * Finds a value in a row object using a case-insensitive and space-insensitive key.
+ * @param row The object representing a single row.
+ * @param key The desired key (e.g., "Start Price" or "start price").
+ * @returns The value found, or an empty string if not found.
+ */
 function findValueByKey(row: ParsedRow, key: string): any {
     const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, ' ');
     for (const rowKey in row) {
@@ -50,10 +69,17 @@ function findValueByKey(row: ParsedRow, key: string): any {
     return "";
 }
 
+
 // ==================================================================================
 // --- Mappers and Generators ---
 // ==================================================================================
 
+/**
+ * Maps a single row from the eBay CSV to our internal product structure.
+ * @param row The parsed row from the uploaded file.
+ * @param rowIndex The original index of the row for error reporting.
+ * @returns An InternalProduct object.
+ */
 function mapEbayToInternal(row: ParsedRow, rowIndex: number): InternalProduct {
     const name = findValueByKey(row, 'title');
     // Use 'Item number' as a fallback for missing SKUs to prevent errors
@@ -65,6 +91,7 @@ function mapEbayToInternal(row: ParsedRow, rowIndex: number): InternalProduct {
     const rawPrice = findValueByKey(row, 'start price');
     const price = typeof rawPrice === 'string' ? parseFloat(rawPrice) : Number(rawPrice);
 
+    // --- Validation ---
     if (!name) throw new ValidationError(rowIndex, 'Title', '"Title" cannot be empty.');
     if (!sku) throw new ValidationError(rowIndex, 'SKU', 'Both "Custom label (SKU)" and "Item number" are missing.');
     if (isNaN(price)) throw new ValidationError(rowIndex, 'Start price', '"Start price" must be a valid number.');
@@ -72,35 +99,43 @@ function mapEbayToInternal(row: ParsedRow, rowIndex: number): InternalProduct {
     const imageUrls = (findValueByKey(row, 'item photo url') || '').toString().split('|').filter(Boolean);
 
     return {
-        sku, name, price,
-        description: findValueByKey(row, 'description') || name,
+        sku,
+        name,
+        price,
+        description: findValueByKey(row, 'description') || name, // Fallback to name if description is empty
         quantity: parseInt(findValueByKey(row, 'available quantity'), 10) || 0,
         imageUrls,
         upc: findValueByKey(row, 'p:upc') || '',
         ecokartCategory: findValueByKey(row, 'ebay category 1 name') || 'Uncategorized',
+        additionalCategoryNames: findValueByKey(row, 'ebay category 2 name') || '',
         brand: findValueByKey(row, 'brand') || 'Unbranded',
         condition: (findValueByKey(row, 'condition') || 'Used').toUpperCase(),
     };
 }
 
-function calaculateComparePrice(price : any){
-  if (isNaN(price) || price <= 0) return 0;
+function calaculateComparePrice(price: any) {
+    if (isNaN(price) || price <= 0) return 0;
     const comparePrice = price * 1.25;
     return parseFloat(comparePrice.toFixed(2));
 }
 
-
-function calaculateCostPrice(price : any){
-  if (isNaN(price) || price <= 0) return 0;
+function calaculateCostPrice(price: any) {
+    if (isNaN(price) || price <= 0) return 0;
     const costPrice = price * 0.60;
     return parseFloat(costPrice.toFixed(2));
 }
 
-function generateEcokartData(internalData: InternalProduct[]): Record<string, any>[] {
+/**
+ * Generates the final array of objects formatted for the main-format-template CSV.
+ * @param internalData The array of processed InternalProduct objects.
+ * @returns An array of objects ready to be converted to CSV.
+ */
+function generateMainFormatData(internalData: InternalProduct[]): Record<string, any>[] {
     return internalData.map(p => ({
         'name': p.name,
         'description': p.description,
         'shortDescription': p.name,
+        'sku': p.sku,
         'price': p.price,
         'compareAtPrice': calaculateComparePrice(p.price),
         'costPrice': calaculateCostPrice(p.price),
@@ -111,6 +146,7 @@ function generateEcokartData(internalData: InternalProduct[]): Record<string, an
         'brand': p.brand,
         'condition': p.condition,
         'categoryName': p.ecokartCategory,
+        'additionalCategoryNames': p.additionalCategoryNames,
         'barcode': p.upc,
         'metaTitle': p.name,
         'metaDescription': p.description,
@@ -119,7 +155,7 @@ function generateEcokartData(internalData: InternalProduct[]): Record<string, an
         'trackQuantity': true,
         'allowBackorder': false,
         'tags': 'ebay, import',
-        'image': p.imageUrls[0] || 'https://media-cdn.prabisha.com/uploads/ecokart/',
+        'image': p.imageUrls[0] || 'https://images.prabisha.com/uploads/1756982870_0_ecokart-placeholder.jpg',
         'imageUrls': p.imageUrls.slice(1).join(','),
     }));
 }
@@ -128,6 +164,7 @@ function generateEcokartData(internalData: InternalProduct[]): Record<string, an
 // ==================================================================================
 // --- Main API Handler ---
 // ==================================================================================
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const formData = await request.formData();
@@ -147,6 +184,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         rows.forEach((row, index) => {
             try {
+                // index + 2 accounts for the header row and 1-based indexing
                 internalData.push(mapEbayToInternal(row, index + 2));
             } catch (e: unknown) {
                 if (e instanceof ValidationError) {
@@ -161,35 +199,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             return NextResponse.json({ error: 'Your file contains validation errors.', errors }, { status: 400 });
         }
 
-        // 1. Read the Ecokart template file from the public directory
-        const templatePath = path.join(process.cwd(), 'public', 'cross-list - ecokart.csv');
+        // 1. Read the main template file from the public directory
+        const templatePath = path.join(process.cwd(), 'public', 'main-format-template.csv');
         const templateText = await fs.readFile(templatePath, 'utf-8');
 
         // 2. Generate the new data rows from the uploaded eBay file
-        const newDataForEcokart = generateEcokartData(internalData);
+        const newDataForMainFormat = generateMainFormatData(internalData);
         
         // 3. Convert the new data to a CSV string *without* a header row
-        const newDataCsv = Papa.unparse(newDataForEcokart, { header: false });
+        const newDataCsv = Papa.unparse(newDataForMainFormat, { header: false });
 
         // 4. Append the new CSV data to the existing template content
-        // Ensures there's a newline between the old content and the new rows
+        // Ensures there's a newline between the template and the new rows
         const finalCsvString = `${templateText.trim()}\n${newDataCsv}`;
 
-        // 5. Return the combined CSV file
+        // 5. Return the combined CSV file for download
         return new NextResponse(finalCsvString, {
             headers: {
                 'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="ecokart-from-ebay-${Date.now()}.csv"`,
+                'Content-Disposition': `attachment; filename="main-format-${Date.now()}.csv"`,
             }
         });
 
     } catch (error: unknown) {
       console.error(error);
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-        // Handle file not found error separately
-        if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
-             return NextResponse.json({ error: 'Could not find "cross-list - ecokart.csv" on the server.' }, { status: 500 });
-        }
-        return NextResponse.json({ error: message }, { status: 500 });
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      // Handle file not found error separately for a clearer message
+      if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+           return NextResponse.json({ error: 'Could not find "main-format-template.csv" in the /public folder on the server.' }, { status: 500 });
+      }
+      return NextResponse.json({ error: message }, { status: 500 });
     }
 }
