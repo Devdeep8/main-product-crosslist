@@ -10,35 +10,35 @@ import path from 'path';
 const EBAY_ACTION_STRING = 'Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)';
 
 const ECOKART_TO_EBAY_CATEGORY_MAP: Record<string, string> = {
-  "Men's Clothing": "1059",              // Men's Clothing
-  "Women's Clothing": "15724",           // Women's Clothing
-  "Kids Clothing": "11462",              // Kids' & Baby Clothing
-  "Girls Clothes": "11462",              // falls under Kids Clothing
-  "Boys Clothes": "260067",              // Boys' Clothing
-  "Shoes & Footwear": "15709",           // Shoes
-  "Fashion": "11450",                    // Clothing, Shoes & Accessories
-  "Men's Grooming": "11854",             // Shaving & Hair Removal
-  "Skincare": "11863",                   // Skin Care
-  "Jewelry": "281",                      // Jewelry & Watches
-  "Watches": "14324",                    // Watches
-  "Bags & Luggage": "169291",            // Travel Luggage
-  "Toys": "220",                         // Toys & Hobbies
-  "Kids": "220",                         // Map Kids general → Toys
-  "Videos": "617",                       // DVDs & Movies
-  "Books": "267",                        // Books
-  "Video Games": "1249",                 // Video Games & Consoles
-  "Electronics": "9355",                 // Consumer Electronics
-  "Tools & Hardware": "631",             // Tools & Workshop Equipment
-  "Sports & Fitness": "888",             // Sporting Goods
-  "Home & Living": "11700",              // Home & Garden
-  "Home Decor": "10033",                 // Home Décor
-  "Kitchen & Dining": "20625",           // Kitchen, Dining & Bar
-  "School Supplies": "160737",           // School Supplies
-  "Health & Beauty": "26395",            // Health & Beauty
-  "Accessories": "4251",                 // Fashion Accessories
-  "Vintage & Collectible": "37903",      // Collectibles
-  "Luxury": "15724",                     // Luxury fashion (under Women’s Clothing/Fashion)
-  "Gifts": "184609"                      // Gift Cards & Coupons
+  "Men's Clothing": "1059",           // Men's Clothing
+  "Women's Clothing": "15724",         // Women's Clothing
+  "Kids Clothing": "11462",           // Kids' & Baby Clothing
+  "Girls Clothes": "11462",           // falls under Kids Clothing
+  "Boys Clothes": "260067",          // Boys' Clothing
+  "Shoes & Footwear": "15709",         // Shoes
+  "Fashion": "11450",               // Clothing, Shoes & Accessories
+  "Men's Grooming": "11854",          // Shaving & Hair Removal
+  "Skincare": "11863",               // Skin Care
+  "Jewelry": "281",                   // Jewelry & Watches
+  "Watches": "14324",                 // Watches
+  "Bags & Luggage": "169291",         // Travel Luggage
+  "Toys": "220",                     // Toys & Hobbies
+  "Kids": "220",                     // Map Kids general → Toys
+  "Videos": "617",                   // DVDs & Movies
+  "Books": "267",                     // Books
+  "Video Games": "1249",               // Video Games & Consoles
+  "Electronics": "9355",               // Consumer Electronics
+  "Tools & Hardware": "631",           // Tools & Workshop Equipment
+  "Sports & Fitness": "888",           // Sporting Goods
+  "Home & Living": "11700",             // Home & Garden
+  "Home Decor": "10033",              // Home Décor
+  "Kitchen & Dining": "20625",         // Kitchen, Dining & Bar
+  "School Supplies": "160737",         // School Supplies
+  "Health & Beauty": "26395",          // Health & Beauty
+  "Accessories": "4251",               // Fashion Accessories
+  "Vintage & Collectible": "37903",     // Collectibles
+  "Luxury": "15724",                 // Luxury fashion (under Women’s Clothing/Fashion)
+  "Gifts": "184609"                   // Gift Cards & Coupons
 };
 
 
@@ -77,7 +77,6 @@ async function getTemplateText(formData: FormData): Promise<string> {
   }
 }
 
-// (All other helper functions like parseFile, findValueByKey, etc. are included below)
 async function parseFile(file: File): Promise<ParsedRow[]> {
   const buffer = await file.arrayBuffer();
   const workbook = xlsx.read(buffer, { type: 'buffer' });
@@ -112,6 +111,7 @@ function validateHeaders(firstRow: ParsedRow, requiredHeaders: string[]): { isVa
   return { isValid: missing.length === 0, missing };
 }
 
+// --- MODIFIED FUNCTION ---
 function mapEcokartToInternal(row: ParsedRow, rowIndex: number): InternalProduct {
   const name = findValueByKey(row, 'Name');
   const sku = findValueByKey(row, 'SKU');
@@ -122,11 +122,29 @@ function mapEcokartToInternal(row: ParsedRow, rowIndex: number): InternalProduct
   if (isNaN(price)) throw new ValidationError(rowIndex, 'Price', '"Price" must be a valid number.');
 
   const categoryName = findValueByKey(row, 'Category Name') || '';
+  
+  // --- FIX: Logic to correctly parse image URLs ---
+  const imageUrls: string[] = [];
+  
+  // 1. Get URL from the 'image' column
+  const singleImageUrl = findValueByKey(row, 'image');
+  if (singleImageUrl && typeof singleImageUrl === 'string') {
+      imageUrls.push(singleImageUrl.trim());
+  }
+
+  // 2. Get URLs from the 'imageUrls' column (which might be a comma-separated string)
+  const multipleImageUrls = findValueByKey(row, 'imageUrls');
+  if (multipleImageUrls && typeof multipleImageUrls === 'string') {
+      const urls = multipleImageUrls.split(',').map(url => url.trim()).filter(Boolean);
+      imageUrls.push(...urls);
+  }
+  // --- END OF FIX ---
+
   return {
     sku, name, price,
     description: findValueByKey(row, 'Description') || '',
     quantity: parseInt(findValueByKey(row, 'Quantity'), 10) || 1,
-    imageUrls: Object.keys(row).filter(k => k.startsWith('imageurl')).map(k => row[k]).filter(Boolean),
+    imageUrls, // Use the new combined and cleaned array
     ebayCategoryId: ECOKART_TO_EBAY_CATEGORY_MAP[categoryName] || '',
     upc: findValueByKey(row, 'UPC') || '',
     ecokartCategory: categoryName,
@@ -134,6 +152,7 @@ function mapEcokartToInternal(row: ParsedRow, rowIndex: number): InternalProduct
     condition: findValueByKey(row, 'Condition') || 'GOOD',
   };
 }
+
 
 function mapEbayToInternal(row: ParsedRow, rowIndex: number): InternalProduct {
   const name = findValueByKey(row, 'Title');
@@ -215,7 +234,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const isEbaySource = Object.keys(rows[0]).some(key => key.startsWith('action(siteid'));
-    const requiredHeaders = isEbaySource ? ['category id', 'title', 'custom label (sku)' , "Item photo URL"] : ['name', 'sku', 'price', 'condition', 'category name', 'Image URL 1'];
+    const requiredHeaders = isEbaySource ? ['category id', 'title', 'custom label (sku)' , "Item photo URL"] : ['name', 'sku', 'price', 'condition', 'categoryName', 'image'];
     const validationResult = validateHeaders(rows[0], requiredHeaders);
 
     if (!validationResult.isValid) {

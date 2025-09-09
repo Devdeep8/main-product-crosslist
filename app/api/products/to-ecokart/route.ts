@@ -125,6 +125,10 @@ function calaculateCostPrice(price: any) {
     return parseFloat(costPrice.toFixed(2));
 }
 
+function sku (){
+    return 
+}
+
 /**
  * Generates the final array of objects formatted for the main-format-template CSV.
  * @param internalData The array of processed InternalProduct objects.
