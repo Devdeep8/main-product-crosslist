@@ -194,7 +194,7 @@ function generateEbayCsvData(internalData: InternalProduct[]): Record<string, an
     'Condition ID': '3000', // Used
     'Description': p.description,
     'Format': 'FixedPrice',
-    'brand':p.brand
+    'Brand':p.brand
   }));
 }
 
